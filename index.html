@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PEAT-REWETTING ANALYZER V1.1 • GPS LIVE</title>
+<style>
+:root{--bg:#07131a;--card:#0d2029;--card2:#102a35;--line:#214653;--text:#e8f4f7;--muted:#9bb5bd;--accent:#45d6b0;--accent2:#4fb3ff;--warn:#ffd166}
+*{box-sizing:border-box} body{margin:0;font-family:Inter,Segoe UI,Arial,sans-serif;background:linear-gradient(135deg,#061017,#0a1c25 55%,#08251f);color:var(--text)}
+header{padding:24px 20px 18px;border-bottom:1px solid var(--line);position:sticky;top:0;background:rgba(7,19,26,.94);backdrop-filter:blur(10px);z-index:10}
+.brand{max-width:1250px;margin:auto}.brand h1{margin:0;font-size:25px;letter-spacing:.8px}.brand p{margin:6px 0 0;color:var(--muted);font-size:13px}
+nav{max-width:1250px;margin:16px auto 0;display:flex;gap:8px;overflow:auto;padding-bottom:2px}nav button{white-space:nowrap;background:#0b2029;border:1px solid var(--line);color:#cde1e6;border-radius:10px;padding:10px 13px;cursor:pointer}nav button.active{background:var(--accent);color:#06201a;border-color:var(--accent);font-weight:700}
+main{max-width:1250px;margin:22px auto;padding:0 16px}.page{display:none}.page.active{display:block}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}.grid2{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}.card{background:rgba(13,32,41,.9);border:1px solid var(--line);border-radius:16px;padding:18px;box-shadow:0 12px 35px rgba(0,0,0,.16)}.card h2{font-size:16px;margin:0 0 14px}.metric{font-size:26px;font-weight:800;color:var(--accent)}.label{font-size:12px;color:var(--muted);margin-top:5px}
+label{display:block;font-size:12px;color:#aac3ca;margin:10px 0 5px}input,select{width:100%;padding:10px 11px;border-radius:9px;border:1px solid #2b5260;background:#071820;color:#eef9fb;outline:none}input:focus{border-color:var(--accent)}
+.btn{border:0;border-radius:10px;padding:11px 15px;background:var(--accent);color:#052018;font-weight:800;cursor:pointer;margin-top:12px}.btn.secondary{background:#153542;color:#d9edf1;border:1px solid var(--line)}.btn.warn{background:var(--warn);color:#231b05}
+table{width:100%;border-collapse:collapse;font-size:13px}th,td{border-bottom:1px solid #21424c;padding:9px;text-align:left}th{color:#a9c7ce;font-weight:700}td.num{text-align:right}
+pre{white-space:pre-wrap;background:#061116;border:1px solid var(--line);padding:14px;border-radius:10px;color:#d8ecef;line-height:1.55}
+.small{font-size:12px;color:var(--muted);line-height:1.55}.formula{font-family:Georgia,serif;background:#07171e;padding:12px;border-left:3px solid var(--accent2);border-radius:7px;margin:10px 0}
+footer{text-align:center;color:#78939b;font-size:11px;padding:30px 10px}
+@media(max-width:900px){.grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:600px){.grid,.grid2{grid-template-columns:1fr}.brand h1{font-size:20px}main{padding:0 10px}.card{padding:14px}}
+
+/* --- V1.1 GPS LIVE + EKOSISTEM GAMBUT --- */
+.eco-hero{position:relative;min-height:300px;overflow:hidden;border-radius:16px;border:1px solid var(--line);background:#081b20}
+.eco-hero svg{display:block;width:100%;height:300px}
+.eco-overlay{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:flex-end;padding:22px;background:linear-gradient(180deg,transparent 25%,rgba(4,18,22,.86) 100%)}
+.eco-overlay h2{margin:0 0 5px;font-size:21px}.eco-overlay p{margin:0;color:#c4d9de;font-size:12px;max-width:720px}
+.gps-card{border:1px solid #2b5964;background:linear-gradient(135deg,#0b242d,#0b1d24);border-radius:14px;padding:16px}
+.gps-status{display:flex;align-items:center;gap:9px;font-weight:700;margin-bottom:12px}
+.gps-dot{width:10px;height:10px;border-radius:50%;background:#647b82;box-shadow:0 0 0 4px rgba(100,123,130,.12)}
+.gps-dot.live{background:#45d6b0;box-shadow:0 0 0 4px rgba(69,214,176,.13);animation:pulseGps 1.5s infinite}
+@keyframes pulseGps{0%,100%{opacity:1}50%{opacity:.45}}
+.gps-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.gps-value{font-size:18px;font-weight:800;color:#eaf8f7}.gps-label{font-size:10px;color:var(--muted);margin-top:3px}
+.gps-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.btn.gps{background:#45d6b0;color:#052018}.btn.gps-stop{background:#243d46;color:#d8edf0;border:1px solid var(--line)}
+.location-pin{font-size:25px}
+@media(max-width:600px){.eco-hero svg{height:245px}.eco-hero{min-height:245px}.gps-grid{grid-template-columns:1fr 1fr}.gps-value{font-size:15px}}
+
+
+.gps-security{margin-top:12px;padding:12px;border-radius:10px;border:1px solid #5b4d24;background:#211e12;color:#f6e7a6;font-size:12px;line-height:1.5}
+.gps-security.ok{border-color:#246b59;background:#0c2722;color:#bcebdc}
+.gps-security strong{display:block;margin-bottom:4px}
+.gps-url{font-family:monospace;word-break:break-all;color:#8fd9ff}
+
+
+/* V1.4 FIELD CAPTURE */
+.field-preview{width:100%;aspect-ratio:16/10;object-fit:cover;border-radius:12px;background:#061116;border:1px solid var(--line);display:block}
+.field-canvas{display:none}
+.capture-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.field-badge{display:inline-block;padding:5px 8px;border-radius:8px;background:#12343d;color:#9ee8d2;font-size:11px;margin:3px 3px 0 0}
+.field-log{max-height:270px;overflow:auto}
+.photo-thumb{width:72px;height:54px;object-fit:cover;border-radius:7px;border:1px solid var(--line);vertical-align:middle;margin-right:7px}
+.field-note{background:#07171e;border-left:3px solid var(--accent);padding:10px;border-radius:7px;font-size:12px;line-height:1.5}
+
+</style>
+</head>
+<body>
+<header>
+<div class="brand"><h1>PEAT-REWETTING ANALYZER <span style="color:#45d6b0">V1</span></h1><p>Perencanaan Embung • Rewetting Lahan Gambut • MAT • Proof of Water • Kubu Raya</p></div>
+<nav>
+<button class="active" onclick="show('dashboard',this)">Dashboard</button>
+<button onclick="show('lokasi',this)">Lokasi</button>
+<button onclick="show('gps',this)">🛰️ GPS LIVE</button>
+<button onclick="show('field',this)">📸 FIELD CAPTURE</button>
+<button onclick="show('hidro',this)">Hidrologi</button>
+<button onclick="show('rewet',this)">Rewetting</button>
+<button onclick="show('embung',this)">Dimensi Embung</button>
+<button onclick="show('simulasi',this)">Simulasi</button>
+<button onclick="show('pow',this)">Proof of Water</button>
+<button onclick="show('kesimpulan',this)">Kesimpulan</button>
+<button onclick="show('export',this)">Export</button>
+</nav>
+</header>
+
+<main>
+<section id="dashboard" class="page active">
+<div class="grid">
+<div class="card"><div class="metric" id="mCap">160.000</div><div class="label">Kapasitas Skenario (m³)</div></div>
+<div class="card"><div class="metric" id="mNeed">157.500</div><div class="label">Kebutuhan Rewetting (m³)</div></div>
+<div class="card"><div class="metric" id="mArea">176</div><div class="label">Cakupan Rewetting (ha)</div></div>
+<div class="card"><div class="metric" id="mPow">0,86</div><div class="label">Proof of Water</div></div>
+</div>
+<div class="grid2" style="margin-top:14px">
+<div class="card"><h2>Alur Analisis</h2><p class="small">DATA → HIDROLOGI → NERACA AIR → KEBUTUHAN REWETTING → KAPASITAS → DIMENSI EMBUNG → SIMULASI → MAT → PoW → KESIMPULAN</p></div>
+<div class="card"><h2>Status Model</h2><p class="small">Data contoh saat ini berstatus <b>DATA DUMMY</b>. Ganti dengan data lapangan sebelum hasil digunakan sebagai hasil empiris tesis.</p></div>
+</div>
+</section>
+
+<section id="lokasi" class="page">
+<div class="card"><h2>📍 Lokasi Penelitian</h2>
+<div class="grid2">
+<div><label>Kabupaten</label><input id="kab" value="Kubu Raya"></div>
+<div><label>Provinsi</label><input id="prov" value="Kalimantan Barat"></div>
+<div><label>Kecamatan</label><input id="kec" placeholder="Isi setelah screening lokasi"></div>
+<div><label>Desa/Lokasi</label><input id="desa" placeholder="Isi setelah verifikasi lapangan"></div>
+<div><label>Latitude</label><input id="lat" type="number" step="0.000001"></div>
+<div><label>Longitude</label><input id="lon" type="number" step="0.000001"></div>
+</div>
+<p class="small">Lokasi desa, koordinat, dan dimensi teknis tidak dikunci sebelum verifikasi lapangan.</p></div>
+</section>
+
+<section id="gps" class="page">
+ <div class="grid2">
+  <div class="card">
+   <h2>🛰️ GPS LIVE — Posisi Lapangan</h2>
+   <div class="gps-card">
+    <div class="gps-status"><span class="gps-dot" id="gpsDotMenu"></span><span id="gpsStatusMenu">GPS belum aktif</span></div>
+    <div class="gps-grid">
+     <div><div class="gps-value" id="menuLat">—</div><div class="gps-label">LATITUDE</div></div>
+     <div><div class="gps-value" id="menuLon">—</div><div class="gps-label">LONGITUDE</div></div>
+     <div><div class="gps-value" id="menuAcc">—</div><div class="gps-label">AKURASI</div></div>
+    </div>
+    <div class="gps-actions">
+     <button class="btn gps" onclick="startGPS()">▶ AKTIFKAN GPS LIVE</button>
+     <button class="btn gps-stop" onclick="stopGPS()">■ STOP GPS</button>
+    </div>
+    <p class="small" id="gpsMenuHelp">Tekan AKTIFKAN GPS LIVE, lalu izinkan browser mengakses lokasi perangkat.</p>
+    <div id="gpsSecurity" class="gps-security">
+      <strong>⚠️ Pemeriksaan akses GPS</strong>
+      <span id="gpsSecurityText">Memeriksa keamanan halaman…</span>
+    </div>
+   </div>
+  </div>
+
+  <div class="card">
+   <h2>📍 Posisi Terakhir</h2>
+   <div class="formula">Latitude = <span id="gpsFormulaLat">—</span><br>Longitude = <span id="gpsFormulaLon">—</span></div>
+   <table>
+    <tr><th>Status</th><td id="gpsTableStatus">Belum aktif</td></tr>
+    <tr><th>Akurasi</th><td id="gpsTableAcc">—</td></tr>
+    <tr><th>Koordinat</th><td id="gpsTableCoord">—</td></tr>
+   </table>
+   <p class="small" style="margin-top:12px"><b>Fungsi penelitian:</b> koordinat GPS dapat digunakan sebagai titik awal pencatatan lokasi survei, foto lapangan, pengukuran MAT, debit, dan screening calon lokasi embung. Koordinat akhir tetap perlu diverifikasi di lapangan.</p>
+  </div>
+ </div>
+</section>
+
+<section id="field" class="page">
+ <div class="grid2">
+  <div class="card">
+   <h2>📸 FIELD CAPTURE — Survei Lapangan</h2>
+   <div class="field-note">Ambil foto kondisi gambut, kanal/drainase, vegetasi, genangan, piezometer, atau calon lokasi embung. GPS Live akan dilampirkan ke setiap titik jika aktif.</div>
+
+   <label>ID Titik Survei</label><input id="fieldId" value="KUBU-RAYA-001">
+   <label>Jenis Observasi</label>
+   <select id="fieldType">
+    <option>Kondisi gambut</option><option>Kanal / drainase</option><option>Vegetasi</option>
+    <option>Genangan air</option><option>Piezometer / MAT</option><option>Calon lokasi embung</option><option>Lainnya</option>
+   </select>
+   <label>Catatan lapangan</label><input id="fieldNote" placeholder="Contoh: permukaan gambut lembap, terdapat kanal...">
+
+   <video id="cameraVideo" class="field-preview" autoplay playsinline muted></video>
+   <canvas id="cameraCanvas" class="field-canvas"></canvas>
+
+   <div class="capture-row">
+    <button class="btn" onclick="startCamera()">📷 BUKA KAMERA</button>
+    <button class="btn gps" onclick="capturePhoto()">● AMBIL FOTO</button>
+    <button class="btn gps-stop" onclick="stopCamera()">■ STOP KAMERA</button>
+   </div>
+   <p class="small" id="cameraStatus">Kamera belum aktif. Kamera browser memerlukan izin dan umumnya HTTPS/localhost.</p>
+  </div>
+
+  <div class="card">
+   <h2>📍 Metadata Titik</h2>
+   <div class="gps-card">
+    <div class="gps-grid">
+     <div><div class="gps-value" id="fieldLat">—</div><div class="gps-label">LATITUDE</div></div>
+     <div><div class="gps-value" id="fieldLon">—</div><div class="gps-label">LONGITUDE</div></div>
+     <div><div class="gps-value" id="fieldAcc">—</div><div class="gps-label">AKURASI</div></div>
+    </div>
+    <div style="margin-top:12px"><span class="field-badge" id="fieldGpsBadge">GPS belum terhubung</span><span class="field-badge">📸 Foto</span><span class="field-badge">🕐 Timestamp</span></div>
+   </div>
+
+   <label>Desa / Lokasi</label><input id="fieldPlace" placeholder="Isi setelah verifikasi">
+   <button class="btn" onclick="saveFieldRecord()">💾 SIMPAN TITIK & FOTO</button>
+   <button class="btn secondary" onclick="exportFieldCSV()">📤 EXPORT DATA CSV</button>
+   <button class="btn secondary" onclick="exportFieldJSON()">📦 EXPORT DATA JSON</button>
+
+   <div style="margin-top:15px"><h2>Riwayat Titik</h2><div id="fieldLog" class="field-log small">Belum ada data lapangan tersimpan.</div></div>
+  </div>
+ </div>
+</section>
+
+<section id="hidro" class="page">
+<div class="grid2">
+<div class="card"><h2>💧 Data Hidrologi</h2>
+<label>Curah hujan P (mm/periode)</label><input id="P" type="number" value="237.5">
+<label>Luas area A (m²)</label><input id="A" type="number" value="12500000">
+<label>Debit Q (m³/s)</label><input id="Q" type="number" value="0.42" step="0.01">
+<label>Interval Δt (hari)</label><input id="dt" type="number" value="1">
+<label>ET (mm/periode)</label><input id="ET" type="number" value="4.05">
+<button class="btn" onclick="calcHydro()">HITUNG HIDROLOGI</button>
+</div>
+<div class="card"><h2>Hasil Konsisten Satuan</h2><div class="formula">V<sub>Q</sub> = Q × Δt</div><div id="hydroOut" class="small">Belum dihitung.</div></div>
+</div>
+</section>
+
+<section id="rewet" class="page">
+<div class="grid2">
+<div class="card"><h2>🌱 Rewetting Calculator</h2>
+<label>Luas target (ha)</label><input id="rwArea" type="number" value="180">
+<label>Kedalaman efektif d<sub>eff</sub> (m)</label><input id="rwDepth" type="number" value="0.25" step="0.01">
+<label>Simpanan efektif S<sub>y</sub></label><input id="rwSy" type="number" value="0.35" step="0.01">
+<button class="btn" onclick="calcRewet()">HITUNG KEBUTUHAN AIR</button>
+</div>
+<div class="card"><h2>Hasil</h2><div id="rewetOut" class="small">Belum dihitung.</div></div>
+</div>
+</section>
+
+<section id="embung" class="page">
+<div class="grid2">
+<div class="card"><h2>🏗️ Dimensi Awal Embung</h2>
+<label>Kapasitas efektif target (m³)</label><input id="cap" type="number" value="160000">
+<label>Luas dasar A<sub>dasar</sub> (m²)</label><input id="abase" type="number" value="30000">
+<label>Luas atas A<sub>atas</sub> (m²)</label><input id="atop" type="number" value="50000">
+<label>Tinggi tampungan H (m)</label><input id="H" type="number" value="4" step="0.1">
+<label>Freeboard (m)</label><input id="freeboard" type="number" value="0.75" step="0.05">
+<label>Panjang embung awal (m)</label><input id="Ldam" type="number" value="180">
+<button class="btn" onclick="calcDim()">HITUNG DIMENSI AWAL</button>
+</div>
+<div class="card"><h2>Output Dimensi</h2><div id="dimOut" class="small">Belum dihitung.</div>
+<p class="small"><b>Catatan:</b> hasil ini adalah preliminary design. Stabilitas, geoteknik, spillway, seepage, dan detail konstruksi harus diverifikasi secara teknis.</p></div>
+</div>
+</section>
+
+<section id="simulasi" class="page">
+<div class="card"><h2>📈 Skenario Kapasitas</h2>
+<table><thead><tr><th>Skenario</th><th>Kapasitas (m³)</th><th>Durasi air (hari)</th><th>Rewetting (ha)</th><th>MAT (m)</th></tr></thead>
+<tbody>
+<tr><td>S0</td><td>0</td><td>0</td><td>0</td><td>0,92</td></tr>
+<tr><td>S1</td><td>50.000</td><td>42</td><td>55</td><td>0,81</td></tr>
+<tr><td>S2</td><td>100.000</td><td>78</td><td>112</td><td>0,70</td></tr>
+<tr><td>S3</td><td>160.000</td><td>116</td><td>176</td><td>0,61</td></tr>
+</tbody></table>
+<div class="formula">S*<sub>t+1</sub> = S<sub>t</sub> + V<sub>P</sub> + V<sub>Qin</sub> − V<sub>Qout</sub> − V<sub>ET</sub> − V<sub>rewet</sub></div>
+</div>
+</section>
+
+<section id="pow" class="page">
+<div class="grid2">
+<div class="card"><h2>🔬 Proof of Water</h2>
+<table><thead><tr><th>Komponen</th><th>Bobot</th><th>S3</th></tr></thead><tbody>
+<tr><td>WA</td><td>0,25</td><td>0,88</td></tr><tr><td>WC</td><td>0,20</td><td>0,85</td></tr><tr><td>WR</td><td>0,15</td><td>0,90</td></tr><tr><td>RP</td><td>0,25</td><td>0,86</td></tr><tr><td>MC</td><td>0,15</td><td>0,78</td></tr>
+</tbody></table>
+<div class="formula">PoW = Σ W<sub>i</sub>I<sub>i</sub></div>
+<button class="btn" onclick="calcPow()">HITUNG PoW</button>
+</div>
+<div class="card"><h2>Hasil PoW</h2><div id="powOut" class="metric">0,86</div><p class="small">Kategori operasional: <b>Sangat Tinggi</b>. Kategori ini merupakan klasifikasi penelitian, bukan standar hidrologi universal.</p></div>
+</div>
+</section>
+
+<section id="kesimpulan" class="page">
+<div class="card"><h2>📋 Kesimpulan Otomatis</h2><div id="conclusion"></div>
+<button class="btn" onclick="makeConclusion()">GENERATE KESIMPULAN</button></div>
+</section>
+
+<section id="export" class="page">
+<div class="card"><h2>📤 Export Hasil</h2>
+<button class="btn" onclick="downloadJSON()">Export JSON</button>
+<button class="btn secondary" onclick="window.print()">Print / Save PDF</button>
+<p class="small">JSON menyimpan input lokasi, hidrologi, rewetting, dan dimensi awal. Gunakan Print → Save as PDF untuk laporan.</p>
+</div>
+</section>
+</main>
+<footer>PEAT-REWETTING ANALYZER V1.4 • Research Planning Tool • Design by Himawan Labs • 2026</footer>
+
+<script>
+const fmt=n=>Number(n).toLocaleString('id-ID',{maximumFractionDigits:2});
+function show(id,btn){document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));document.getElementById(id).classList.add('active');document.querySelectorAll('nav button').forEach(x=>x.classList.remove('active'));if(btn)btn.classList.add('active')}
+
+let cameraStream=null;
+let capturedPhotoData=null;
+let fieldRecords=JSON.parse(localStorage.getItem('peatFieldRecordsV14')||'[]');
+
+async function startCamera(){
+  const video=document.getElementById('cameraVideo');
+  if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+    document.getElementById('cameraStatus').textContent='Kamera tidak tersedia. Buka aplikasi melalui HTTPS atau localhost.';
+    return;
+  }
+  try{
+    if(cameraStream) cameraStream.getTracks().forEach(t=>t.stop());
+    cameraStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'}},audio:false});
+    video.srcObject=cameraStream;
+    document.getElementById('cameraStatus').textContent='Kamera aktif • gunakan AMBIL FOTO untuk merekam kondisi lapangan.';
+  }catch(e){
+    document.getElementById('cameraStatus').textContent='Kamera gagal dibuka: '+e.message+'. Periksa izin kamera dan HTTPS.';
+  }
+}
+function stopCamera(){
+  if(cameraStream){cameraStream.getTracks().forEach(t=>t.stop());cameraStream=null;}
+  document.getElementById('cameraVideo').srcObject=null;
+  document.getElementById('cameraStatus').textContent='Kamera dihentikan.';
+}
+function capturePhoto(){
+  const video=document.getElementById('cameraVideo');
+  if(!cameraStream || !video.videoWidth){
+    document.getElementById('cameraStatus').textContent='Aktifkan kamera terlebih dahulu.';
+    return;
+  }
+  const canvas=document.getElementById('cameraCanvas');
+  const maxW=1280, scale=Math.min(1,maxW/video.videoWidth);
+  canvas.width=Math.round(video.videoWidth*scale);
+  canvas.height=Math.round(video.videoHeight*scale);
+  canvas.getContext('2d').drawImage(video,0,0,canvas.width,canvas.height);
+  capturedPhotoData=canvas.toDataURL('image/jpeg',0.82);
+  document.getElementById('cameraStatus').textContent='Foto berhasil diambil. Tekan SIMPAN TITIK & FOTO.';
+}
+function getCurrentGPS(){
+  const lat=document.getElementById('lat').value;
+  const lon=document.getElementById('lon').value;
+  const acc=document.getElementById('gpsAccuracy').textContent;
+  return {lat:lat||'',lon:lon||'',accuracy:acc||''};
+}
+function saveFieldRecord(){
+  const gps=getCurrentGPS();
+  if(!capturedPhotoData){
+    alert('Ambil foto terlebih dahulu.');
+    return;
+  }
+  const rec={
+    id:document.getElementById('fieldId').value || ('KUBU-RAYA-'+String(fieldRecords.length+1).padStart(3,'0')),
+    type:document.getElementById('fieldType').value,
+    place:document.getElementById('fieldPlace').value,
+    note:document.getElementById('fieldNote').value,
+    latitude:gps.lat,
+    longitude:gps.lon,
+    accuracy:gps.accuracy,
+    timestamp:new Date().toISOString(),
+    photo:capturedPhotoData
+  };
+  fieldRecords.unshift(rec);
+  localStorage.setItem('peatFieldRecordsV14',JSON.stringify(fieldRecords));
+  renderFieldLog();
+  document.getElementById('fieldId').value='KUBU-RAYA-'+String(fieldRecords.length+1).padStart(3,'0');
+  document.getElementById('fieldNote').value='';
+  capturedPhotoData=null;
+  document.getElementById('cameraStatus').textContent='Titik tersimpan di perangkat.';
+}
+function renderFieldLog(){
+  const el=document.getElementById('fieldLog');
+  if(!fieldRecords.length){el.textContent='Belum ada data lapangan tersimpan.';return;}
+  el.innerHTML=fieldRecords.map((r,i)=>`<div style="padding:9px 0;border-bottom:1px solid #21424c">
+    <img class="photo-thumb" src="${r.photo}" alt="foto titik ${r.id}">
+    <b>${r.id}</b> • ${r.type}<br>
+    <span class="small">${r.latitude||'—'}, ${r.longitude||'—'} • ${new Date(r.timestamp).toLocaleString('id-ID')}</span><br>
+    <span class="small">${r.note||'Tanpa catatan'}</span>
+  </div>`).join('');
+}
+function exportFieldJSON(){
+  const payload={project:'PEAT-REWETTING ANALYZER V1.4',exported_at:new Date().toISOString(),records:fieldRecords};
+  const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='PEAT_FIELD_CAPTURE_KUBU_RAYA.json';a.click();
+}
+function exportFieldCSV(){
+  const header=['ID_TITIK','JENIS_OBSERVASI','LOKASI','CATATAN','LATITUDE','LONGITUDE','AKURASI','TIMESTAMP','FOTO_BASE64'];
+  const rows=fieldRecords.map(r=>[r.id,r.type,r.place,r.note,r.latitude,r.longitude,r.accuracy,r.timestamp,r.photo]);
+  const esc=v=>`"${String(v??'').replace(/"/g,'""')}"`;
+  const csv=[header,...rows].map(row=>row.map(esc).join(',')).join('\n');
+  const blob=new Blob([csv],{type:'text/csv;charset=utf-8'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='PEAT_FIELD_CAPTURE_KUBU_RAYA.csv';a.click();
+}
+
+function calcHydro(){
+ const Q=+document.getElementById('Q').value, dt=+document.getElementById('dt').value*86400, P=+document.getElementById('P').value,A=+document.getElementById('A').value,ET=+document.getElementById('ET').value;
+ const vq=Q*dt, vp=P*A/1000, vet=ET*A/1000;
+ document.getElementById('hydroOut').innerHTML=`<b>Volume debit:</b> ${fmt(vq)} m³/periode<br><b>Volume hujan:</b> ${fmt(vp)} m³/periode<br><b>Volume ET:</b> ${fmt(vet)} m³/periode<br><b>Catatan:</b> Q tetap m³/s; komponen neraca air memakai m³/periode.`;
+}
+function calcRewet(){
+ const ha=+document.getElementById('rwArea').value,d=+document.getElementById('rwDepth').value,sy=+document.getElementById('rwSy').value;
+ const area=ha*10000,v=area*d*sy;
+ document.getElementById('rewetOut').innerHTML=`A<sub>rewet</sub> = ${fmt(area)} m²<br><b>Kebutuhan volume rewetting = ${fmt(v)} m³</b>`;
+ document.getElementById('mNeed').textContent=fmt(v);
+}
+function calcDim(){
+ const cap=+document.getElementById('cap').value,ab=+document.getElementById('abase').value,at=+document.getElementById('atop').value,H=+document.getElementById('H').value,fb=+document.getElementById('freeboard').value,L=+document.getElementById('Ldam').value;
+ const v=(ab+at)/2*H,ratio=cap/v;
+ document.getElementById('dimOut').innerHTML=`<b>Volume geometrik pendekatan:</b> ${fmt(v)} m³<br><b>Kapasitas target:</b> ${fmt(cap)} m³<br><b>Tinggi tampungan:</b> ${fmt(H)} m<br><b>Freeboard:</b> ${fmt(fb)} m<br><b>Tinggi total awal:</b> ${fmt(H+fb)} m<br><b>Panjang embung awal:</b> ${fmt(L)} m<br><b>Rasio target/volume pendekatan:</b> ${fmt(ratio)}`;
+}
+function calcPow(){let v=.25*.88+.20*.85+.15*.90+.25*.86+.15*.78;document.getElementById('powOut').textContent=v.toLocaleString('id-ID',{maximumFractionDigits:3});document.getElementById('mPow').textContent=v.toLocaleString('id-ID',{maximumFractionDigits:2});}
+function makeConclusion(){
+ document.getElementById('conclusion').innerHTML=`<p>Berdasarkan data dummy dan simulasi skenario, kapasitas S3 sebesar <b>160.000 m³</b> menghasilkan cakupan rewetting sekitar <b>176 ha</b> dari target 180 ha atau <b>97,78%</b>. Kebutuhan volume rewetting yang dihitung adalah <b>157.500 m³</b>. Nilai Proof of Water S3 sebesar <b>0,86</b> berada pada kategori operasional sangat tinggi.</p><p>Hasil tersebut merupakan <b>hasil simulasi perencanaan</b>, bukan bukti kinerja lapangan. Dimensi embung harus diverifikasi dengan survei topografi, hidrologi, geoteknik, analisis spillway, seepage, dan persyaratan teknis sebelum pembangunan.</p>`;
+}
+
+let gpsWatchId=null;
+function setGpsText(status, live=false){
+  document.getElementById('gpsStatus').textContent=status;
+  document.getElementById('gpsStatusDash').textContent=status;
+  document.getElementById('gpsDot').classList.toggle('live',live);
+  document.getElementById('gpsDotDash').classList.toggle('live',live);
+}
+function checkGpsSecurity(){
+  const secure = window.isSecureContext === true;
+  const protocol = window.location.protocol;
+  const box = document.getElementById('gpsSecurity');
+  const txt = document.getElementById('gpsSecurityText');
+  if(secure){
+    box.classList.add('ok');
+    txt.innerHTML='Halaman aman untuk GPS. Tekan <b>AKTIFKAN GPS LIVE</b> dan izinkan akses lokasi.';
+  }else{
+    box.classList.remove('ok');
+    txt.innerHTML='Halaman sedang dibuka sebagai <b>'+protocol+'</b>. Chrome/Android dapat memblokir GPS pada mode ini. Jalankan aplikasi melalui <b>HTTPS</b> (misalnya GitHub Pages) atau <b>localhost</b>.';
+  }
+}
+
+function startGPS(){
+  checkGpsSecurity();
+  if(!navigator.geolocation){
+    setGpsText('Geolocation tidak didukung browser',false);
+    document.getElementById('gpsStatusMenu').textContent='Geolocation tidak didukung';
+    document.getElementById('gpsMenuHelp').textContent='Gunakan Chrome/Edge versi terbaru dengan layanan lokasi perangkat aktif.';
+    return;
+  }
+  if(!window.isSecureContext){
+    setGpsText('GPS diblokir: halaman tidak secure',false);
+    document.getElementById('gpsStatusMenu').textContent='GPS diblokir oleh browser';
+    document.getElementById('gpsMenuHelp').innerHTML='Buka aplikasi dari alamat <b>HTTPS</b> atau <b>localhost</b>. Membuka file HTML langsung dari penyimpanan HP biasanya tidak mengizinkan GPS.';
+    return;
+  }
+  if(gpsWatchId!==null) navigator.geolocation.clearWatch(gpsWatchId);
+  setGpsText('Mencari posisi GPS…',false);
+  document.getElementById('gpsStatusMenu').textContent='Mencari posisi GPS…';
+  document.getElementById('gpsDotMenu').classList.remove('live');
+  document.getElementById('gpsMenuHelp').textContent='Menunggu koordinat terbaik dari perangkat…';
+  document.getElementById('gpsHelp').textContent='Menunggu koordinat terbaik dari perangkat…';
+  gpsWatchId=navigator.geolocation.watchPosition(pos=>{
+    const lat=pos.coords.latitude, lon=pos.coords.longitude;
+    const acc=pos.coords.accuracy;
+    document.getElementById('lat').value=lat.toFixed(6);
+    document.getElementById('lon').value=lon.toFixed(6);
+    document.getElementById('gpsLat').textContent=lat.toFixed(6);
+    document.getElementById('gpsLon').textContent=lon.toFixed(6);
+    document.getElementById('gpsAccuracy').textContent=fmt(acc)+' m';
+    document.getElementById('dashLat').textContent=lat.toFixed(6);
+    document.getElementById('dashLon').textContent=lon.toFixed(6);
+    document.getElementById('dashAcc').textContent=fmt(acc)+' m';
+    document.getElementById('menuLat').textContent=lat.toFixed(6);
+    document.getElementById('menuLon').textContent=lon.toFixed(6);
+    document.getElementById('menuAcc').textContent=fmt(acc)+' m';
+    document.getElementById('gpsFormulaLat').textContent=lat.toFixed(6);
+    document.getElementById('gpsFormulaLon').textContent=lon.toFixed(6);
+    document.getElementById('gpsTableStatus').textContent='GPS LIVE • posisi diperbarui';
+    document.getElementById('gpsTableAcc').textContent=fmt(acc)+' m';
+    document.getElementById('gpsTableCoord').textContent=lat.toFixed(6)+' , '+lon.toFixed(6);
+    document.getElementById('gpsStatusMenu').textContent='GPS LIVE • posisi diperbarui';
+    document.getElementById('gpsDotMenu').classList.add('live');
+    document.getElementById('gpsMenuHelp').textContent='Posisi live aktif. Koordinat otomatis tersimpan pada menu Lokasi.';
+    setGpsText('GPS LIVE • posisi diperbarui',true);
+    document.getElementById('gpsHelp').textContent='Posisi live aktif. Akurasi bergantung pada GPS, jaringan, dan kondisi lingkungan.';
+  },err=>{
+    let msg='Gagal mengambil posisi GPS';
+    if(err.code===1) msg='Izin lokasi ditolak';
+    if(err.code===2) msg='Posisi tidak tersedia';
+    if(err.code===3) msg='Permintaan lokasi timeout';
+    setGpsText(msg,false);
+    document.getElementById('gpsStatusMenu').textContent=msg;
+    document.getElementById('gpsDotMenu').classList.remove('live');
+    document.getElementById('gpsMenuHelp').textContent=msg+'. Periksa izin lokasi/GPS perangkat lalu coba lagi.';
+    document.getElementById('gpsHelp').textContent=msg+'. Periksa izin lokasi/GPS perangkat lalu coba lagi.';
+  },{enableHighAccuracy:true,maximumAge:5000,timeout:20000});
+}
+
+function stopGPS(){
+  if(gpsWatchId!==null){navigator.geolocation.clearWatch(gpsWatchId);gpsWatchId=null;}
+  setGpsText('GPS dihentikan',false);
+  document.getElementById('gpsStatusMenu').textContent='GPS dihentikan';
+  document.getElementById('gpsDotMenu').classList.remove('live');
+  document.getElementById('gpsMenuHelp').textContent='GPS live dihentikan. Koordinat terakhir tetap tersimpan pada kolom lokasi.';
+  document.getElementById('gpsHelp').textContent='GPS live dihentikan. Koordinat terakhir tetap tersimpan pada kolom lokasi.';
+}
+
+function downloadJSON(){
+ const data={project:"PEAT-REWETTING ANALYZER V1",location:{kabupaten:document.getElementById('kab').value,provinsi:document.getElementById('prov').value,kecamatan:document.getElementById('kec').value,desa:document.getElementById('desa').value,lat:document.getElementById('lat').value,lon:document.getElementById('lon').value},units:{Q:"m3/s",volume:"m3/periode",rainfall:"mm/periode",ET:"mm/periode",area:"m2",elevation:"m"},rewetting:{target_ha:+document.getElementById('rwArea').value,depth_m:+document.getElementById('rwDepth').value,Sy:+document.getElementById('rwSy').value},design:{capacity_m3:+document.getElementById('cap').value,height_m:+document.getElementById('H').value,freeboard_m:+document.getElementById('freeboard').value,length_m:+document.getElementById('Ldam').value},status:"DATA DUMMY / PRELIMINARY DESIGN"};
+ const blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download="PEAT_REWETTING_ANALYZER_V1_KUBU_RAYA.json";a.click();
+}
+calcRewet();calcDim();makeConclusion();checkGpsSecurity();renderFieldLog();
+</script>
+</body></html>
